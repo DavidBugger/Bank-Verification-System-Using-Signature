@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container">
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title text-center">Make a Deposit</h4>
+                        <div class="text-center mb-4">
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#depositModal">Open Deposit Form</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deposit Modal -->
+    <div class="modal fade" id="depositModal" tabindex="-1" aria-labelledby="depositModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="depositModalLabel">Deposit Form</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" action="/deposit">
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount:</label>
+                            <input type="number" class="form-control" id="amount" name="amount" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Deposit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

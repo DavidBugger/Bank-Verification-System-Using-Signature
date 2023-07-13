@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container">
+        <h1>Make a Withdrawal</h1>
+
+        <form method="POST" action="/withdrawal">
+            <div class="mb-3">
+                <label for="amount" class="form-label">Amount</label>
+                <input type="number" class="form-control" id="amount" name="amount" placeholder="Enter withdrawal amount" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Withdraw</button>
+        </form>
+
+        <a class="btn btn-secondary mt-4" href="/dashboard">Back to Dashboard</a>
+    </div>
+{% endblock %}

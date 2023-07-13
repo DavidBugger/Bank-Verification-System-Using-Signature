@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container">
+        <h1>Welcome, {{ username }}!</h1>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3>Account Information</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>Username:</strong> {{ username }}</p>
+                <p><strong>Signature:</strong> {{ signature }}</p>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h3>Transactions</h3>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.id }}</td>
+                            <td>{{ transaction.type }}</td>
+                            <td>{{ transaction.amount }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col">
+                <a class="btn btn-primary" href="/deposit">Make a Deposit</a>
+            </div>
+            <div class="col">
+                <a class="btn btn-primary" href="/withdrawal">Make a Withdrawal</a>
+            </div>
+        </div>
+        
+        <a class="btn btn-secondary mt-4" href="/logout">Logout</a>
+    </div>
+{% endblock %}
