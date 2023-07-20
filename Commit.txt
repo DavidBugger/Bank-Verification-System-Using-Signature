@@ -1,0 +1,6 @@
+git init
+git status
+git add .
+git commit -m "Add new feature and fix bugs"
+git pull origin main
+git push origin main
