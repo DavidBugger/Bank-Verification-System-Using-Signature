@@ -4,7 +4,18 @@
     <div class="container">
         <h1>Make a Withdrawal</h1>
 
-        <form method="POST" action="/withdrawal">
+        <!-- Add code to display flash messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="messages">
+                    {% for message in messages %}
+                        <li class="message">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="/withdraw">
             <div class="mb-3">
                 <label for="amount" class="form-label">Amount</label>
                 <input type="number" class="form-control" id="amount" name="amount" placeholder="Enter withdrawal amount" required>

@@ -202,3 +202,8 @@ pip install flask sqlalchemy
 7.Run the application:
 python app.py
 http://localhost:5000
+
+
+git remote add origin https://github.com/DavidBugger/Bank-Verification-System-Using-Signature.git
+git branch -M main
+git push -u origin main
