@@ -3,25 +3,44 @@
    {% extends 'base.html' %}
 
 {% block content %}
+  <!-- Include jQuery from a CDN -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+   <!-- Include SweetAlert from a CDN -->
+   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.min.js"></script>
     <div class="container">
         <div class="row justify-content-center mt-5">
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body">
                         <h4 class="card-title text-center">User Registration</h4>
-                        <form method="POST" action="/register" enctype="multipart/form-data">
+                        <form method="POST" action="/register_customer" enctype="multipart/form-data" id="registration-form">
                             <div class="form-group">
-                                <label for="username">Username:</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
+                                <label for="username">Name:</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
                             </div>
+                            <div class="form-group">
+                                <label for="username">Address:</label>
+                                <input type="text" class="form-control" id="address" name="address" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="username">Account No:</label>
+                                <input type="text" class="form-control" id="account_no" name="account_no" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="username">Phone Number:</label>
+                                <input type="text" class="form-control" id="phone_no" name="phone_no" required>
+                            </div>
+                            
+                              <div class="form-group">
+                                <label for="signature">Signature:</label>
+                                <input type="file" class="form-control" id="signature" name="signature" accept=".png,.jpg,.jpeg" required>
+                            </div>
+                        
                             <div class="form-group">
                                 <label for="password">Password:</label>
                                 <input type="password" class="form-control" id="password" name="password" required>
                             </div>
-                            <div class="form-group">
-                                <label for="signature">Signature:</label>
-                                <input type="file" class="form-control" id="signature" name="signature" accept=".png,.jpg,.jpeg" required>
-                            </div>
+                          
                             <br>
                             <div class="text-center">
                                 <button type="submit" class="btn btn-primary">Register</button>
@@ -32,4 +51,43 @@
             </div>
         </div>
     </div>
+
+
+    <script>
+        // jQuery code for form validation
+        $(document).ready(function() {
+            $('#registration-form').submit(function(event) {
+                // Check if account number is an integer
+                var accountNoInput = $('[name="account_no"]');
+                var accountNoValue = accountNoInput.val().trim();
+                if (!$.isNumeric(accountNoValue)) {
+                    event.preventDefault();
+                    alert('Account number must be an integer.');
+                    accountNoInput.focus();
+                    return false;
+                }
+
+                // Check if account number meets the minimum length requirement
+                if (accountNoValue.length < 11) {
+                    event.preventDefault();
+                    alert('Account number must be at least 11 characters long.');
+                    accountNoInput.focus();
+                    return false;
+                }
+
+                // Check if password meets the minimum length requirement
+                var passwordInput = $('[name="password"]');
+                var passwordValue = passwordInput.val().trim();
+                if (passwordValue.length < 6) {
+                    event.preventDefault();
+                    alert('Password must be at least 6 characters long.');
+                    passwordInput.focus();
+                    return false;
+                }
+                else{
+                    alert('You have Successfully Registered!');
+                }
+            });
+        });
+    </script>
 {% endblock %}

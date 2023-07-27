@@ -18,14 +18,11 @@
                                 </div>
                             {% endif %}
                         {% endwith %}
-                        <form method="POST" action="/login" enctype="multipart/form-data">
+                        <form method="POST" action="/login" enctype="multipart/form-data" id = "#login-form">
+                          
                             <div class="form-group">
-                                <label for="username">Username:</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="password">Password:</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
+                                <label for="password">Account No:</label>
+                                <input type="text" class="form-control" id="password" name="account_no" required>
                             </div>
                             <div class="form-group">
                                 <label for="signature">Signature:</label>
@@ -41,4 +38,53 @@
             </div>
         </div>
     </div>
+
+    <!-- Include jQuery from a CDN -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Include SweetAlert from a CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.min.js"></script>
+
+<script>
+    // jQuery code for login form submission
+    $(document).ready(function() {
+        $('#login-form').submit(function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            // Check if account number is an integer
+            var accountNoInput = $('[name="account_no"]');
+            var accountNoValue = accountNoInput.val().trim();
+            if (!$.isNumeric(accountNoValue)) {
+                alert('Account number must be an integer.');
+                accountNoInput.focus();
+                return false;
+            }
+
+            // If all validations pass, proceed with login using AJAX
+            var formData = $(this).serialize();
+
+            $.ajax({
+                type: 'POST',
+                url: '/login',  // Replace with the correct URL for your login route
+                data: formData,
+                dataType: 'json', // Expect JSON response from the server
+                success: function(response) {
+                    // Handle the response from the server
+                    if (response.status === 'success') {
+                        alert('Login successfully'); // Prompt "Login successfully"
+                        window.location.href = '/dashboard'; // Replace with the correct URL for your dashboard route
+                    } else {
+                        alert('Invalid account number or signature'); // Prompt an error message
+                    }
+                },
+                error: function(xhr, status, error) {
+                    // Handle AJAX errors if needed
+                    alert('Error occurred while processing the request.');
+                }
+            });
+        });
+    });
+</script>
+
+
 {% endblock %}
