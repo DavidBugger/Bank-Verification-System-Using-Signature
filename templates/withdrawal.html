@@ -1,28 +1,63 @@
 {% extends 'base.html' %}
 
+
 {% block content %}
     <div class="container">
         <h1>Make a Withdrawal</h1>
 
-        <!-- Add code to display flash messages -->
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <ul class="messages">
-                    {% for message in messages %}
-                        <li class="message">{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        {% endwith %}
 
         <form method="POST" action="/withdraw">
             <div class="mb-3">
                 <label for="amount" class="form-label">Amount</label>
-                <input type="number" class="form-control" id="amount" name="amount" placeholder="Enter withdrawal amount" required>
+                <input type="text" class="form-control" id="amount" name="amount" placeholder="Enter withdrawal amount" required>
             </div>
             <button type="submit" class="btn btn-primary">Withdraw</button>
         </form>
 
         <a class="btn btn-secondary mt-4" href="/dashboard">Back to Dashboard</a>
     </div>
+
+<!-- Add SweetAlert library -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.css">
+<!-- Make sure to include jQuery library in your HTML -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    // Handle form submission using AJAX
+    $(document).ready(function() {
+        $('#withdraw-form').submit(function(event) {
+            event.preventDefault();
+
+            // Get the amount from the input field
+            var amount = parseInt($('#amount').val());
+
+            // Send the AJAX request to the server
+            $.ajax({
+                type: 'POST',
+                url: '/withdraw',
+                data: {
+                    amount: amount
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // Update the remaining balance on the page
+                        $('#remaining-balance').text('Remaining Balance: ' + response.remaining_balance);
+                        // Show a success message
+                        alert('Withdrawal successful! Remaining balance: ' + response.remaining_balance);
+                    } else {
+                        // Show an error message
+                        alert('Withdrawal failed: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    // Show an error message if the AJAX request fails
+                    alert('An error occurred during the withdrawal.');
+                }
+            });
+        });
+    });
+</script>
+
 {% endblock %}

@@ -1,24 +1,17 @@
-# from flask import Flask, render_template, session, redirect, flash
-# from models import db,User, Transaction
-# from routes import *
-# from flask_sqlalchemy import SQLAlchemy
-# import os
-# # from flask_migrate import Migrate
 
-from flask import Flask, render_template, session, redirect, flash,json
+from flask import Flask, render_template, session, redirect, flash
 from models import db
 from routes import *
 from flask_sqlalchemy import SQLAlchemy
 import os
 import sqlite3
+from flask import jsonify
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bank_transactions.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/signatures'  
 db.init_app(app)
-
-
 # Connect to the database (replace 'your_database.db' with the actual path to your SQLite database)
 conn = sqlite3.connect('database2.db', check_same_thread=False)
 cursor = conn.cursor()
@@ -45,6 +38,16 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS customer_login (
 # Commit the changes and close the connection
 conn.commit()
 
+# Create a table called 'users' with the specified fields
+cursor.execute('''CREATE TABLE IF NOT EXISTS balance (
+                    cust_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    customer_balance INTEGER  NOT NULL
+
+                )''')
+
+# Commit the changes and close the connection
+conn.commit()
+
 
 # Directory to store customer signatures
 SIGNATURES_DIR = 'static/signatures'
@@ -58,15 +61,13 @@ def register_customer():
         phone_no = request.form['phone_no']
         address = request.form['address']
         signature = request.files['signature']
-        password = request.form['password']
-        
+        password = request.form['password'] 
            # Check if the account number is an integer
         try:
             account_no = int(account_no)
         except ValueError:
             # flash('Account number must be an integer.', 'danger')
             return redirect(url_for('register_customer'))
-
         # Check if the account number meets the minimum length requirement (at least 11 characters)
         if len(str(account_no)) < 11:
             # flash('Account number must be at least 11 characters long.', 'danger')
@@ -129,36 +130,6 @@ def register():
 
     return render_template('register.html')
 
-
-# @app.route('/login', methods=['GET', 'POST'])
-# def login():
-#     if request.method == 'POST':
-#         username = request.form['username']
-#         password = request.form['password']
-#         signature = request.files['signature']
-
-#         # Retrieve the user from the database
-#         user = User.query.filter_by(username=username).first()
-
-#         if user:
-#             session['username'] = user.username
-#             session['signature'] = user.signature
-#             # Compare the uploaded signature with the one stored in the database
-#             uploaded_signature = signature.read()
-#             stored_signature_path = os.path.join(app.config['UPLOAD_FOLDER'], user.signature)
-#             stored_signature = open(stored_signature_path, 'rb').read()
-
-#             if uploaded_signature == stored_signature:
-#                 session['user_id'] = user.id
-#                 return redirect('/dashboard')
-#             else:
-#                 flash('Invalid signature')
-#         else:
-#             flash('Invalid username or password')
-
-#     return render_template('login.html')
-
-
 # Directory to store user signatures
 UPLOAD_FOLDER = 'static/signatures'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -168,17 +139,15 @@ def login():
     if request.method == 'POST':
         account_no = request.form['account_no']
         signature = request.files['signature']
-
         # Retrieve the user from the database based on the provided account number
         cursor.execute("SELECT * FROM customer_registration WHERE account_no = ?", (account_no,))
         user = cursor.fetchone()
-
         if user:
             # Compare the uploaded signature with the one stored in the database
             uploaded_signature = signature.read()
             stored_signature_path = os.path.join(app.config['UPLOAD_FOLDER'], user[3])  # Assuming signature path is stored in column 5
             stored_signature = open(stored_signature_path, 'rb').read()
-
+            
             if uploaded_signature == stored_signature:
                 # Signature matches, user is authenticated
                 session['cust_id'] = user[0]  # Assuming user ID is stored in column 0
@@ -196,21 +165,28 @@ def deposit():
     if request.method == 'POST':
         amount = int(request.form['amount'])
         # Retrieve the username from the session
-        username = session['username']
-        # Fetch the user from the Users model using the username
-        user = User.query.filter_by(username=username).first()
-        if user and session['user_id'] == user.id:
-            # Create a new transaction for the deposit
-            deposit = Transaction(user_id=user.id, type='Deposit', amount=amount)
-            db.session.add(deposit)
-            db.session.commit()
-            flash(f'Deposit successful! Amount: {amount}', 'success')
-        else:
-            flash('Invalid user or session', 'danger')
+        username = session.get('account_no')
 
-        return redirect('/dashboard')
+        # Query the customer_registration table to get the cust_id
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT cust_id FROM customer_registration WHERE account_no = ?
+        ''', (username,))
+        cust_id = cursor.fetchone()
+        # Update the user's balance in the customer_balance table
+        cursor.execute('''
+            INSERT INTO balance (cust_id, balance) VALUES (?, ?)
+            ON CONFLICT (cust_id) DO UPDATE SET balance = balance + ?
+        ''', (cust_id, amount, amount))
+        conn.commit()
+
+        # Use jsonify to send the response data to the frontend
+        response_data = {'status': 'success', 'amount': amount}
+        return jsonify(response_data)
 
     return render_template('deposit.html')
+
+
 
 @app.route('/dashboard')
 def dashboard():
@@ -239,69 +215,102 @@ def get_total_transactions_and_balance(user_id):
     return total_transactions, total_amount
 
 
+
+
 @app.route('/withdraw', methods=['GET', 'POST'])
+# @app.route('/withdraw', methods=['POST'])
 def withdraw():
-    if request.method == 'POST':
-        amount = int(request.form['amount'])
-        # Retrieve the user from the session
-        username = session.get('id')
-        # Fetch the user from the Users model
-        user = Transaction.query.filter_by(user_id=username).first()
-        if user:
-            if user.amount >= amount:
-                # Create a new transaction for the withdrawal
-                withdrawal = Transaction(user_id=user.id, type='Withdrawal', amount=amount)
-                db.session.add(withdrawal)
-                # Update the user's balance
-                user.amount -= amount
-                db.session.commit()
+    amount = int(request.form.get('amount', 0))
+    # Retrieve the sender's account number from the session
+    sender_account_no = session.get('cust_id')
 
-                flash(f'Withdrawal successful! Remaining balance: {user.amount}', 'success')
-            else:
-                flash('Insufficient balance for withdrawal', 'danger')
+    # Fetch the sender's balance from the balance table
+    cursor.execute('SELECT balance FROM balance WHERE cust_id = ?', (sender_account_no,))
+    sender_balance = cursor.fetchone()
 
-            return redirect(url_for('dashboard'))
+    if sender_balance:
+        sender_balance = int(sender_balance[0])  # Convert the balance to an integer
+        if sender_balance >= amount:
+            # Perform the withdrawal for the sender
+            sender_balance -= amount
 
-    return render_template('withdrawal.html')
+            # Update the sender's balance in the balance table
+            cursor.execute('UPDATE balance SET balance = ? WHERE account_no = ?', (sender_balance, sender_account_no))
+            conn.commit()
+
+            # Return the updated sender's balance in the JSON response
+            response_data = {'status': 'success', 'remaining_balance': sender_balance}
+            return jsonify(response_data)
+        else:
+            # Return an error message if the sender's balance is insufficient
+            response_data = {'status': 'error', 'message': 'Insufficient balance for withdrawal'}
+            return jsonify(response_data)
+    else:
+        # Return an error message if the sender's account number is not found
+        response_data = {'status': 'error', 'message': 'Sender account not found'}
+        return jsonify(response_data)
 
 
-@app.route('/transfer', methods=['GET', 'POST'])
+@app.route('/transfer', methods=['POST', 'GET'])
 def transfer():
     if request.method == 'POST':
         amount = int(request.form['amount'])
-        sender_username = session.get('user_id')
-        receiver_username = request.form['receiver']
+        receiver_username = request.form['account_no']
+        # Retrieve the cust_id of the sender from the session
+        sender_username = session.get('account_no')
+        cursor = conn.cursor()
 
-        # Fetch the sender and receiver from the Transactions model
-        sender = Transaction.query.filter_by(user_id=sender_username).first()
-        receiver = Transaction.query.filter_by(user_id=receiver_username).first()
+        # Query the customer_registration table to get the cust_id of the sender
+        cursor.execute('''
+            SELECT cust_id FROM customer_registration WHERE username = ?
+        ''', (sender_username,))
+        sender_cust_id = cursor.fetchone()
 
-        if sender and receiver:
-            if sender.amount >= amount:
-                # Update the sender's balance
-                sender.amount -= amount
-                db.session.commit()
+        if sender_cust_id:
+            sender_cust_id = sender_cust_id[0]
+            # Query the customer_registration table to get the cust_id of the receiver
+            cursor.execute('''
+                SELECT cust_id FROM customer_registration WHERE username = ?
+            ''', (receiver_username,))
+            receiver_cust_id = cursor.fetchone()
 
-                # Update the receiver's balance
-                receiver.amount += amount
-                db.session.commit()
+            if receiver_cust_id:
+                receiver_cust_id = receiver_cust_id[0]
+                # Fetch the sender's balance from the customer_balance table
+                cursor.execute('''
+                    SELECT balance FROM customer_balance WHERE cust_id = ?
+                ''', (sender_cust_id,))
+                sender_balance = cursor.fetchone()[0]
 
-                # Create transactions for both sender and receiver
-                sender_transaction = Transaction(user_id=sender.user_id, type='Transfer (To ' + receiver_username + ')', amount=-amount)
-                receiver_transaction = Transaction(user_id=receiver.user_id, type='Transfer (From ' + sender_username + ')', amount=amount)
-                db.session.add(sender_transaction)
-                db.session.add(receiver_transaction)
-                db.session.commit()
+                if sender_balance >= amount:
+                    # Perform the transfer by updating balances in the customer_balance table
+                    cursor.execute('''
+                        UPDATE customer_balance SET balance = balance - ? WHERE cust_id = ?
+                    ''', (amount, sender_cust_id))
+                    cursor.execute('''
+                        UPDATE customer_balance SET balance = balance + ? WHERE cust_id = ?
+                    ''', (amount, receiver_cust_id))
+                    conn.commit()
 
-                flash(f'Transfer successful! Transferred {amount} to {receiver_username}', 'success')
+                    # Use jsonify to send the response data to the frontend
+                    response_data = {'status': 'success', 'amount': amount, 'receiver_username': receiver_username}
+                    return jsonify(response_data)
+                else:
+                    # Use jsonify to send the response data to the frontend
+                    response_data = {'status': 'error', 'message': 'Insufficient balance for transfer'}
+                    return jsonify(response_data)
             else:
-                flash('Insufficient balance for transfer', 'danger')
+                # Use jsonify to send the response data to the frontend
+                response_data = {'status': 'error', 'message': 'Receiver not found'}
+                return jsonify(response_data)
         else:
-            flash('Sender or receiver not found', 'danger')
-
-        return redirect('/dashboard')
+            # Use jsonify to send the response data to the frontend
+            response_data = {'status': 'error', 'message': 'Sender not found'}
+            return jsonify(response_data)
 
     return render_template('transfer.html')
+
+
 
 
 
