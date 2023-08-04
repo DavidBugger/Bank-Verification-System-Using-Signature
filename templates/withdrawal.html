@@ -1,4 +1,9 @@
 {% extends 'base.html' %}
+Add jQuery library
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Add SweetAlert library -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.css">
 
 
 {% block content %}
@@ -9,20 +14,6 @@
 <!-- Make sure to include jQuery library in your HTML -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <div class="container">
-        <h1>Make a Withdrawal</h1>
-
-
-        <!-- <form method="POST" action="/withdraw">
-            <div class="mb-3">
-                <label for="amount" class="form-label">Amount</label>
-                <input type="text" class="form-control" id="amount" name="amount" placeholder="Enter withdrawal amount" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Withdraw</button>
-        </form>
-
-        <a class="btn btn-secondary mt-4" href="/dashboard">Back to Dashboard</a>
-    </div> -->
-
     <section class="h-100 h-custom">
         <div class="container py-5 h-100">
             <div class="row d-flex justify-content-center align-items-center h-100">
@@ -32,9 +23,8 @@
                             class="w-100" style="border-top-left-radius: .3rem; border-top-right-radius: .3rem;"
                             alt="Sample photo"> -->
                         <div class="card-body p-4 p-md-5">
-                            <h3 class="mb-4 pb-2 pb-md-0 mb-md-5 px-md-2" colspan="5" style="text-align: center; font-weight: bold; letter-spacing: 0cqmax;">Deposit</h3>
+                            <h3 class="mb-4 pb-2 pb-md-0 mb-md-5 px-md-2" colspan="5" style="text-align: center; font-weight: bold; letter-spacing: 0cqmax;">Withdraw</h3>
                             <form class="px-md-2" action="/withdraw" enctype="multipart/form-data" method="POST">
-                        
                                 <div class="row">
                                     <div class="col-md-12 mb-4">
                                         <div class="form-outline datepicker">
@@ -44,9 +34,7 @@
                                     </div>
                                     
                                 </div>
-                               
-                                <button type="submit" class="btn btn-primary">Deposit</button>
-                        
+                                <button type="submit" class="btn btn-primary">Withdraw</button>
                                </form>
        
                         </div>
@@ -58,8 +46,7 @@
 
 
 
-<!-- <script>
-    // Handle form submission using AJAX
+<script>
     $(document).ready(function() {
         $('#withdraw-form').submit(function(event) {
             event.preventDefault();
@@ -79,20 +66,33 @@
                     if (response.status === 'success') {
                         // Update the remaining balance on the page
                         $('#remaining-balance').text('Remaining Balance: ' + response.remaining_balance);
-                        // Show a success message
-                        alert('Withdrawal successful! Remaining balance: ' + response.remaining_balance);
+                        // Show a success message with SweetAlert
+                        Swal.fire({
+                                icon: 'success',
+                                title: 'Withdrawal successful!',
+                                text: 'Remaining Bal: ' + response.remaining_balance,
+                            }).then(() => {
+                        // Redirect to the dashboard after the SweetAlert is closed
+                        window.location.href = '/dashboard';
+                    });
+                      
                     } else {
-                        // Show an error message
-                        alert('Withdrawal failed: ' + response.message);
+                          // Handle any errors if needed
+                          Swal.fire({
+                                icon: 'error',
+                                title: 'Withdrawal failed',
+                                text: 'Error message here',
+                            });
                     }
                 },
                 error: function(xhr, status, error) {
                     // Show an error message if the AJAX request fails
-                    alert('An error occurred during the withdrawal.');
+                    swal('An error occurred during the withdrawal', '', 'error');
                 }
             });
         });
     });
-</script> -->
+</script>
+
 
 {% endblock %}

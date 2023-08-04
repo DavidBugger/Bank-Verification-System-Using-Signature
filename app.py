@@ -213,39 +213,45 @@ def get_balance():
     cursor.execute('SELECT balance FROM balance WHERE cust_id = ?', (username,))
     balance = cursor.fetchone()  # Fetch the first row as a tuple
     
+# @app.route('/withdraw', methods=['POST', 'GET'])
 @app.route('/withdraw', methods=['POST', 'GET'])
-# @app.route('/withdraw', methods=['POST'])
 def withdraw():
-    amount = int(request.form.get('amount', 0))
-    # Retrieve the sender's account number from the session
-    sender_account_no = session.get('cust_id')
+    if request.method == 'POST':
+        amount = int(request.form['amount'])
 
-    # Fetch the sender's balance from the balance table
-    cursor.execute('SELECT balance FROM balance WHERE cust_id = ?', (sender_account_no,))
-    sender_balance = cursor.fetchone()
+        # Retrieve the username from the session
+        username = session.get('account_no')
 
-    if sender_balance:
-        sender_balance = int(sender_balance[0])  # Convert the balance to an integer
-        if sender_balance >= amount:
-            # Perform the withdrawal for the sender
-            sender_balance -= amount
+        # Query the customer_registration table to get the cust_id
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT cust_id FROM customer_registration WHERE account_no = ?
+        ''', (username,))
+        cust_id = cursor.fetchone()
 
-            # Update the sender's balance in the balance table
-            cursor.execute('UPDATE balance SET balance = ? WHERE cust_id = ?', (sender_balance, sender_account_no))
+        # Check if the user has enough balance to withdraw
+        cursor.execute('''
+            SELECT balance FROM balance WHERE cust_id = ?
+        ''', (cust_id,))
+        balance = cursor.fetchone()
+        if balance and balance >= amount:
+            # Perform the withdrawal
+            # Convert the tuple to a list before binding it to the parameter
+            amount_list = list(amount)
+            cursor.execute('''
+                UPDATE balance SET balance = balance - ? WHERE cust_id = ?
+            ''', (amount_list, cust_id))
             conn.commit()
 
-            # Return the updated sender's balance in the JSON response
-            response_data = {'status': 'success', 'remaining_balance': sender_balance}
+            # Use jsonify to send the response data to the frontend
+            response_data = {'status': 'success', 'amount': amount}
             return jsonify(response_data)
         else:
-            # Return an error message if the sender's balance is insufficient
+            # Return an error message if the user does not have enough balance
             response_data = {'status': 'error', 'message': 'Insufficient balance for withdrawal'}
             return jsonify(response_data)
-    else:
-        # Return an error message if the sender's account number is not found
-        response_data = {'status': 'error', 'message': 'Sender account not found'}
-        return jsonify(response_data)
 
+    return render_template('withdrawal.html')
 
 @app.route('/transfer', methods=['POST', 'GET'])
 def transfer():
