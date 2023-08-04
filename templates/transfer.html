@@ -1,9 +1,16 @@
 {% extends 'base.html' %}
 
+
+
 {% block content %}
+<!-- Add jQuery library -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Add SweetAlert library -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.css">
 <body>
     <div class="container mt-4">
-        <h1>Fund Transfer</h1>
+        <!-- <h1>Fund Transfer</h1> -->
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 <div class="alert alert-danger">
@@ -15,18 +22,81 @@
                 </div>
             {% endif %}
         {% endwith %}
-        <form method="POST" action="/transfer">
-            <div class="mb-3">
-                <label for="receiver" class="form-label">Receiver Username:</label>
-                <input type="text" class="form-control" id="account_no" name="account_no" required>
-            </div>
-            <div class="mb-3">
-                <label for="amount" class="form-label">Amount:</label>
-                <input type="number" class="form-control" id="amount" name="amount" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Transfer</button>
-        </form>
-        <a href="/dashboard" class="btn btn-secondary mt-3">Back to Dashboard</a>
-    </div>
 
+    <section class="h-100 h-custom">
+        <div class="container py-5 h-100">
+            <div class="row d-flex justify-content-center align-items-center h-100">
+                <div class="col-lg-8 col-xl-6">
+                    <div class="card rounded-3">
+                        <!-- <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-registration/img3.webp"
+                            class="w-100" style="border-top-left-radius: .3rem; border-top-right-radius: .3rem;"
+                            alt="Sample photo"> -->
+                        <div class="card-body p-4 p-md-5">
+                            <h3 class="mb-4 pb-2 pb-md-0 mb-md-5 px-md-2" colspan="5" style="text-align: center; font-weight: bold; letter-spacing: 0cqmax;">Transfer</h3>
+                            <form class="px-md-2" action="/transfer" enctype="multipart/form-data" method="POST">
+                        
+                                <div class="row">
+                                    <div class="col-md-12 mb-4">
+                                        <label for="receiver" class="form-label">Receiver's Account No:</label>
+                                        <input type="text" class="form-control" id="account_no" name="account_no" required>
+                                    </div>
+                                </div>
+                               
+                                <div class="row">
+                                    <div class="col-md-12 mb-4">
+                                        <label for="amount" class="form-label">Amount:</label>
+                                        <input type="number" class="form-control" id="amount" name="amount" required>
+                                    </div>
+                                </div>
+                                <a href="/dashboard" class="btn btn-warning" ><< Previous</a>
+                                <button type="submit" class="btn btn-success" style="margin-left: 30%;">Transfer</button>
+                               </form>
+                              
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+       </section>
+
+       <script>
+        // Handle form submission using AJAX
+        $("form").submit(function(event) {
+            event.preventDefault();
+            $.ajax({
+                type: "POST",
+                url: "/transfer",
+                data: $(this).serialize(),
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // Show SweetAlert success message
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Transfer successful!',
+                            text: 'Amount: ' + response.amount,
+                            text: 'Beneficiary: ' + response.receiver_username,
+                        }).then(() => {
+                    // Redirect to the dashboard after the SweetAlert is closed
+                    window.location.href = '/dashboard';
+                });
+                    } else {
+                        // Handle any errors if needed
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Transfer failed',
+                            text: 'Error message here',
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    // Handle AJAX errors if needed
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'AJAX Error',
+                        text: 'Error message here',
+                    });
+                }
+            });
+        });
+    </script>
     {% endblock %}

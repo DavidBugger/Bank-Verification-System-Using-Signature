@@ -166,7 +166,6 @@ def deposit():
         amount = int(request.form['amount'])
         # Retrieve the username from the session
         username = session.get('account_no')
-
         # Query the customer_registration table to get the cust_id
         cursor = conn.cursor()
         cursor.execute('''
@@ -190,19 +189,8 @@ def deposit():
 
 @app.route('/dashboard')
 def dashboard():
-    # Retrieve the user from the session
-    username = session.get('username')
-    user = User.query.filter_by(username=username).first()
-    if user:
-        # Query the database to get the total number of records for the logged-in user
-        # total_records = Transaction.query.filter_by(user_id=user.id).count()
-        # Get the total number of transactions and total amount for the user
-        total_transactions, total_amount = get_total_transactions_and_balance(user.id)
-        # Get the sum of amounts for all transactions of the user
-        total_amount = db.session.query(db.func.sum(Transaction.amount)).filter_by(user_id=user.id).scalar()
-        remaining_balance = total_amount if total_amount is not None else 0
-        return render_template('dashboard.html', username=username,user=user, total_transactions=total_transactions, total_amount=total_amount,remaining_balance=remaining_balance)
-    return render_template('dashboard.html')
+    balance = get_balance()
+    return render_template('dashboard.html', balance=balance)
 
 
 def get_total_transactions_and_balance(user_id):
@@ -216,8 +204,16 @@ def get_total_transactions_and_balance(user_id):
 
 
 
-
-@app.route('/withdraw', methods=['GET', 'POST'])
+# Function to retrieve balance for a specific username
+def get_balance():
+    username = session.get('cust_id')
+    if not username:
+        return None  # If no username is found in the session, return None
+    # Assuming 'balance' is the column name in the 'balance' table
+    cursor.execute('SELECT balance FROM balance WHERE cust_id = ?', (username,))
+    balance = cursor.fetchone()  # Fetch the first row as a tuple
+    
+@app.route('/withdraw', methods=['POST', 'GET'])
 # @app.route('/withdraw', methods=['POST'])
 def withdraw():
     amount = int(request.form.get('amount', 0))
@@ -235,7 +231,7 @@ def withdraw():
             sender_balance -= amount
 
             # Update the sender's balance in the balance table
-            cursor.execute('UPDATE balance SET balance = ? WHERE account_no = ?', (sender_balance, sender_account_no))
+            cursor.execute('UPDATE balance SET balance = ? WHERE cust_id = ?', (sender_balance, sender_account_no))
             conn.commit()
 
             # Return the updated sender's balance in the JSON response
@@ -257,12 +253,12 @@ def transfer():
         amount = int(request.form['amount'])
         receiver_username = request.form['account_no']
         # Retrieve the cust_id of the sender from the session
-        sender_username = session.get('account_no')
+        sender_username = session.get('cust_id')
         cursor = conn.cursor()
 
         # Query the customer_registration table to get the cust_id of the sender
         cursor.execute('''
-            SELECT cust_id FROM customer_registration WHERE username = ?
+            SELECT cust_id FROM customer_registration WHERE cust_id = ?
         ''', (sender_username,))
         sender_cust_id = cursor.fetchone()
 
@@ -270,7 +266,7 @@ def transfer():
             sender_cust_id = sender_cust_id[0]
             # Query the customer_registration table to get the cust_id of the receiver
             cursor.execute('''
-                SELECT cust_id FROM customer_registration WHERE username = ?
+                SELECT cust_id FROM customer_registration WHERE account_no = ?
             ''', (receiver_username,))
             receiver_cust_id = cursor.fetchone()
 
@@ -278,17 +274,17 @@ def transfer():
                 receiver_cust_id = receiver_cust_id[0]
                 # Fetch the sender's balance from the customer_balance table
                 cursor.execute('''
-                    SELECT balance FROM customer_balance WHERE cust_id = ?
+                    SELECT balance FROM balance WHERE cust_id = ?
                 ''', (sender_cust_id,))
                 sender_balance = cursor.fetchone()[0]
 
                 if sender_balance >= amount:
                     # Perform the transfer by updating balances in the customer_balance table
                     cursor.execute('''
-                        UPDATE customer_balance SET balance = balance - ? WHERE cust_id = ?
+                        UPDATE balance SET balance = balance - ? WHERE cust_id = ?
                     ''', (amount, sender_cust_id))
                     cursor.execute('''
-                        UPDATE customer_balance SET balance = balance + ? WHERE cust_id = ?
+                        UPDATE balance SET balance = balance + ? WHERE cust_id = ?
                     ''', (amount, receiver_cust_id))
                     conn.commit()
 
